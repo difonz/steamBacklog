@@ -43,7 +43,7 @@ def init_db():
 def home():
     return redirect(url_for('login'))
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register/', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         email = request.form['email']
@@ -61,7 +61,7 @@ def register():
             conn.close()
     return render_template('register.html')
 
-@app.route('/login', methods =['GET','POST'])
+@app.route('/login/', methods =['GET','POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
@@ -90,26 +90,21 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/dashboard')
+@app.route('/dashboard/')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-@app.route('/logout')
+@app.route('/logout/')
 def logout():
     session.pop('user_id',None)
     flash('Logged out sucessfully.')
     return redirect(url_for('login'))
 
 
-@app.route('/games')
+@app.route('/games/')
 def games():
-    
-    
-    
-    
-    
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -265,7 +260,7 @@ def games():
                            order = order,
                            tag = tag)
 
-@app.route('/set_steam_id',methods = ['POST'])
+@app.route('/set_steam_id/',methods = ['POST'])
 def set_steam_id():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -327,7 +322,7 @@ def set_steam_id():
     return redirect(url_for('dashboard'))
 
 
-@app.route('/update_status/<int:appid>',methods=['POST'])
+@app.route('/update_status/<int:appid>/',methods=['POST'])
 def update_status(appid):
     if 'user_id' not in session:
         return redirect(url_for('login'))
