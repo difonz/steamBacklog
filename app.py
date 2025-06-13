@@ -347,4 +347,6 @@ def update_status(appid):
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', 10000))
+    app.run(host=host, port=port)
