@@ -17,7 +17,6 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 def get_db_connection(db_key='GAMES'):
-    """Return a psycopg2 connection using a DATABASE_URL_{db_key} env var with SSL."""
     url = os.getenv(f"DATABASE_URL_{db_key}")
     if not url:
         raise RuntimeError(f"DATABASE_URL_{db_key} not defined")
@@ -26,6 +25,7 @@ def get_db_connection(db_key='GAMES'):
     except OperationalError as e:
         print("DB connection error:", e)
         raise
+
 
 def init_db():
     conn = get_db_connection()
