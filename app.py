@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import requests
 from urllib.parse import urlparse 
+from flask_frozen import Freezer
 
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
@@ -14,6 +15,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
 
 def get_db_connection():
     return psycopg2.connect(
