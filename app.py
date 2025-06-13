@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 import os
 import requests
 from urllib.parse import urlparse 
-from flask_frozen import Freezer
 
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
