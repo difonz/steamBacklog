@@ -3,15 +3,14 @@ import os
 import requests
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from urllib.parse import urlparse
 from psycopg2 import connect, OperationalError
 from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
 import psycopg2.errors
+from dotenv import load_dotenv
 
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY     = os.getenv("SECRET_KEY")
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -25,7 +24,6 @@ def get_db_connection(db_key='GAMES'):
     except OperationalError as e:
         print("DB connection error:", e)
         raise
-
 
 def init_db():
     conn = get_db_connection()
@@ -70,10 +68,10 @@ def register():
                 (email, pw_hash)
             )
             conn.commit()
-            flash('Registered! Log in below.')
+            flash('Registered! You can now log in.')
             return redirect(url_for('login'))
         except psycopg2.errors.UniqueViolation:
-            flash('Email already exists.')
+            flash('This email is already registered.')
         finally:
             conn.close()
     return render_template('register.html')
@@ -82,13 +80,13 @@ def register():
 def login():
     if request.method == 'POST':
         email = request.form['email']
-        password = request.form['password']
+        pw = request.form['password']
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute('SELECT id, password FROM users WHERE email = %s', (email,))
         user = cur.fetchone()
         conn.close()
-        if user and check_password_hash(user['password'], password):
+        if user and check_password_hash(user['password'], pw):
             session['user_id'] = user['id']
             return redirect(url_for('dashboard'))
         flash('Invalid credentials')
@@ -115,11 +113,11 @@ def games():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    page = request.args.get('page', int, 1)
-    per_page = request.args.get('per_page', int, 20)
-    sort = request.args.get('sort', 'name')
-    order = request.args.get('order', 'asc').lower()
-    tag = request.args.get('tag')
+    page     = request.args.get('page',     type=int, default=1)
+    per_page = request.args.get('per_page', type=int, default=20)
+    sort     = request.args.get('sort',     default='name')
+    order    = request.args.get('order',    default='asc').lower()
+    tag      = request.args.get('tag')
 
     if sort not in ('name', 'playtime', 'completion'):
         sort = 'name'
@@ -131,22 +129,19 @@ def games():
         WHERE user_id = %s
     '''
     params = [user_id]
-
     if tag:
         base_sql += ' AND %s = ANY(tags)'
         params.append(tag)
-
-    base_sql += f' ORDER BY {sort} {order_dir}'
+    base_sql += f' ORDER BY {sort} {order_dir} LIMIT %s OFFSET %s'
     offset = (page - 1) * per_page
-    base_sql += ' LIMIT %s OFFSET %s'
     params.extend([per_page, offset])
 
     cur.execute(base_sql, params)
-    saved_games = cur.fetchall()
+    games_list = cur.fetchall()
 
-    count_sql = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s' + (
-        ' AND %s = ANY(tags)' if tag else ''
-    )
+    count_sql = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s'
+    if tag:
+        count_sql += ' AND %s = ANY(tags)'
     cur.execute(count_sql, [user_id] + ([tag] if tag else []))
     total = cur.fetchone()['cnt']
     total_pages = (total + per_page - 1) // per_page
@@ -154,7 +149,7 @@ def games():
     conn.close()
     return render_template(
         'games.html',
-        games=saved_games,
+        games=games_list,
         page=page,
         total_pages=total_pages,
         sort=sort,
@@ -162,10 +157,8 @@ def games():
         tag=tag
     )
 
-# Add your steam_id setting & update_status endpoints here...
-
 if __name__ == '__main__':
     init_db()
     host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 10000))
+    port = int(os.getenv('PORT', '10000'))
     app.run(host=host, port=port)
