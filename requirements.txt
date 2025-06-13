@@ -1,5 +1,5 @@
 flask
-gunicorn app:app
+gunicorn
 psycopg2-binary
 python-dotenv
 requests
