@@ -7,6 +7,7 @@ from psycopg2 import connect, OperationalError
 from psycopg2.extras import RealDictCursor
 import psycopg2.errors
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
@@ -169,6 +170,52 @@ def games():
         order=order,
         tag=tag
     )
+
+@app.route('/set_steam_id/')
+def set_steam_id():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    profile_url = request.form.get('steam_profile_url','').strip()
+    steam_id64 = request.form.get('steam_id64', '').strip()
+    steam_id = None
+    
+    if profile_url:
+        if "/id/" in profile_url:
+            vanity = urlparse(profile_url).path.split("/id/")[1].split("/")[0]
+            res = requests.get(
+                "https://api.steampowered.com/ISteamUsere/ResolveVanityURL/v1/",
+                params = {"key": STEAM_API_KEY, "vanityurl":vanity}
+            )
+            data = res.json().get('response', {})
+            if data.get('success') == 1:
+                steam_id = data['steamid']
+            else:
+                flash("Couldnt resolve your vanity URL.")
+                return redirect(url_for('dashboard'))
+        elif "/profiles/" in profile_url:
+            steam_id = profile_url.split("/profiles/")[1].split("/")[0]
+        else:
+            flash("Enter a valid steam profile url")
+            return redirect(url_for('dashboard'))
+    elif steam_id64:
+        if steam_id64.isdigit() and len(steam_id64) >= 17:
+            steam_id = steam_id64
+        else:
+            flash("Invalid Steam 64 ID")
+            return redirect(url_for('dashboard'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+       'Update users SET steam_id = %s where id = %s',steam_id,session['user_id'] 
+    )
+    conn.commit()
+    conn.close()
+    flash("Steam ID saved!")
+    return redirect(url_for('dashboard'))
+
+
 
 if __name__ == '__main__':
     init_db()
