@@ -19,7 +19,11 @@ def get_db_connection():
     url = os.getenv("DATABASE_URL_GAMES")
     if not url:
         raise RuntimeError("DATABASE_URL_GAMES not defined")
-    return connect(url, sslmode='require', cursor_factory=RealDictCursor)
+    try:
+        return connect(url, sslmode='require', cursor_factory=RealDictCursor)
+    except Exception as e:
+        app.logger.error(f"DB connection error: {e}")
+        raise
 
 def init_db():
     conn = get_db_connection()
@@ -81,15 +85,24 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         pw = request.form['password']
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('SELECT id, password FROM users WHERE email = %s', (email,))
-        user = cur.fetchone()
-        conn.close()
+        conn = None
+        try:
+            conn = get_db_connection
+            cur = conn.cursor()
+            cur.execute('SELECT id, password FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+        except Exception as e:
+            flash('Database error-please try again later.')
+            app.logger.error(f"Login Db error: {e}")
+            return render_template('login.html')
+        finally:
+            if conn:
+                conn.close()
         if user and check_password_hash(user['password'], pw):
             session['user_id'] = user['id']
             return redirect(url_for('dashboard'))
-        flash('Invalid credentials')
+        else:
+            flash('Invalid credentials')
     return render_template('login.html')
 
 @app.route('/dashboard/')
