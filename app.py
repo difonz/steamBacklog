@@ -16,9 +16,9 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 def get_db_connection():
-    url = os.getenv("DATABASE_URL")
+    url = os.getenv("DATABASE_URL_GAMES")
     if not url:
-        raise RuntimeError("DATABASE_URL not defined")
+        raise RuntimeError("DATABASE_URL_GAMES not defined")
     return connect(url, sslmode='require', cursor_factory=RealDictCursor)
 
 def init_db():
