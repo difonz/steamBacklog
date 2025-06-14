@@ -53,6 +53,7 @@ def home():
 
 @app.route('/register/', methods=['GET', 'POST'])
 def register():
+    conn = None
     if request.method == 'POST':
         email = request.form['email']
         pw_hash = generate_password_hash(request.form['password'])
@@ -68,8 +69,11 @@ def register():
             return redirect(url_for('login'))
         except psycopg2.errors.UniqueViolation:
             flash('This email is already registered.')
+        except Exception as e:
+            flash('DB connection failed.')
         finally:
-            conn.close()
+            if conn:
+                conn.close()
     return render_template('register.html')
 
 @app.route('/login/', methods=['GET', 'POST'])
