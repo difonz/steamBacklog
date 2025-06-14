@@ -87,7 +87,7 @@ def login():
         pw = request.form['password']
         conn = None
         try:
-            conn = get_db_connection
+            conn = get_db_connection()
             cur = conn.cursor()
             cur.execute('SELECT id, password FROM users WHERE email = %s', (email,))
             user = cur.fetchone()
