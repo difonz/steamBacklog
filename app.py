@@ -127,101 +127,106 @@ def games():
     conn = get_db_connection()
     cur = conn.cursor()
 
-
-    cur.execute('SELECT steam_id FROM users WHERE ID = %s',(user_id,))
+    # Ensure user has set a Steam ID
+    cur.execute('SELECT steam_id FROM users WHERE id = %s', (user_id,))
     row = cur.fetchone()
     if not row or not row['steam_id']:
         conn.close()
-        flash('Please set your Steam Id first')
+        flash('Please set your Steam ID first')
         return redirect(url_for('dashboard'))
-    steam_id = row['steam_id']
-    
+    steamid = row['steam_id']
+
+    # Fetch Steam games
     url = 'https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/'
     params = {
         'key': STEAM_API_KEY,
-        'steamid': steam_id,
+        'steamid': steamid,
         'include_appinfo': 1,
-        'include_played_free_games':1,
+        'include_played_free_games': 1,
         'format': 'json'
     }
-    
     for _ in range(3):
-        resp = requests.get(url,params=params,timeout=5)
-        if(resp.status_code == 200):
+        resp = requests.get(url, params=params, timeout=5)
+        if resp.status_code == 200:
             break
         time.sleep(2)
-    
     else:
         conn.close()
-        flash('Unable to fetch steam games right now.')
+        flash('Unable to fetch Steam games right now.')
         return redirect(url_for('dashboard'))
-    
+
     gamesData = resp.json().get('response', {}).get('games', [])
-    
+
+    # Upsert each game into the DB
     for games in gamesData:
         cur.execute('''
-        INSERT INTO games (user_id, appid, name, playtime, status, completion)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (user_id, appid) DO UPDATE SET
-        name = EXCLUDED.name,
-        playtime = EXCLUDED.playtime;
-        ''', (user_id, games['appid'], games['name'], games['playtime_forever'], 'Backlog', 0.0))
-    
+            INSERT INTO games (user_id, appid, name, playtime, status, completion)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (user_id, appid) DO UPDATE
+              SET name = EXCLUDED.name,
+                  playtime = EXCLUDED.playtime;
+        ''', (
+            user_id,
+            games['appid'],
+            games.get('name', 'Unknown'),
+            games.get('playtime_forever', 0),
+            'Backlog',
+            0.0
+        ))
     conn.commit()
-    
-    page     = request.args.get('page',     type=int, default=1)
-    per_page = request.args.get('per_page', type=int, default=20)
-    sort     = request.args.get('sort',     default='name')
-    order    = request.args.get('order',    default='asc').lower()
-    tag      = request.args.get('tag')
 
-    if sort not in ('name','playtime','completion'):
+    # Pagination & sorting setup
+    page = request.args.get('page', type=int, default=1)
+    per_page = request.args.get('per_page', type=int, default=20)
+    sort = request.args.get('sort', default='name')
+    order = request.args.get('order', default='asc').lower()
+    tag = request.args.get('tag')
+    if sort not in ('name', 'playtime', 'completion'):
         sort = 'name'
-    
     orderDir = 'DESC' if order == 'desc' else 'ASC'
-    offset = (page-1)*per_page
-    
-    
+    offset = (page - 1) * per_page
+
+    # Build main SELECT query
+    whereClause = 'AND %s = ANY(tags)' if tag else ''
     query = f'''
-        SELECT appid,name,playtime,status,completion
+        SELECT appid, name, playtime, status, completion
         FROM games
-        WHERE user_id = %s
-        {'AND %s = ANY(tags)' if tag else ''}
+        WHERE user_id = %s {whereClause}
         ORDER BY {sort} {orderDir}
         LIMIT %s OFFSET %s
     '''
-    
-    params = [user_id]
+    selectParams = [user_id]
     if tag:
-        params.append(tag)
-    params += [per_page, offset]
-    
-    
-    cur.execute(query,params)
+        selectParams.append(tag)
+    selectParams += [per_page, offset]
+
+    # Execute SELECT
+    cur.execute(query, selectParams)
     gamesList = cur.fetchall()
-    
-    
-    countQuery = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s'
-    params = [user_id]
-    
-    if tag:
-        countQuery+= 'AND %s =ANY(tags)'
-        params.append(tag)
-    
-    cur.execute(query,params)
+
+    # Count total rows for pagination
+    countQuery = f'''
+        SELECT COUNT(*) AS cnt
+        FROM games
+        WHERE user_id = %s {whereClause}
+    '''
+    countParams = [user_id] + ([tag] if tag else [])
+    cur.execute(countQuery, countParams)
     total = cur.fetchone()['cnt']
-    total_pages = (total + per_page -1)
-    
+    total_pages = (total + per_page - 1) // per_page
+
     conn.close()
+
     return render_template(
         'games.html',
-        games = games,
+        games=gamesList,
         page=page,
-        total_pages = total_pages,
+        total_pages=total_pages,
         sort=sort,
         order=order,
         tag=tag
     )
+
     
 @app.route('/set_steam_id/', methods =['POST'])
 def set_steam_id():
