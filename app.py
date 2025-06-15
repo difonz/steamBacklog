@@ -164,7 +164,7 @@ def games():
         ON CONFLICT (user_id, appid) DO UPDATE SET
         name = EXCLUDED.name,
         playtime = EXCLUDED.playtime;
-        ''', (user_id, g['appid'], games['name'], games['playtime_forever'], 'Backlog', 0.0))
+        ''', (user_id, games['appid'], games['name'], games['playtime_forever'], 'Backlog', 0.0))
     
     conn.commit()
     
