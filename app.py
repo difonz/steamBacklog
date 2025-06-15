@@ -283,7 +283,21 @@ def set_steam_id():
     flash("Steam ID saved!")
     return redirect(url_for('dashboard'))
 
-
+@app.route('/update_status/<int:appid>/', methods =['POST'])
+def update_status(appid):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    newStatus = request.form.get('status')
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'UPDATE games SET status = %s WHERE user_id = %s AND appid = %s',
+        (newStatus,session['user_id'],appid)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"Status updated to {newStatus}")
+    return redirect(url_for('games',**request.args))
 
 if __name__ == '__main__':
     init_db()

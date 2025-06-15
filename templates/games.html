@@ -13,6 +13,9 @@
     .pagination { margin: 16px 0; }
     .pagination a { margin: 0 4px; text-decoration: none; }
     .pagination span.current { margin: 0 4px; font-weight: bold; }
+    form { margin: 0; }
+    select { width: auto; }
+    button { padding: 4px 8px; }
   </style>
 </head>
 <body>
@@ -35,17 +38,16 @@
       <tr>
         {% set sort = request.args.get('sort', 'name') %}
         {% set order = request.args.get('order', 'asc') %}
-        {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Completion %'), ('status','Status')] %}
-          {% set new_order = 'asc' %}
-          {% if sort == col %}
-            {% if order == 'asc' %}
-              {% set new_order = 'desc' %}
-            {% endif %}
-            <th><a href="?sort={{col}}&order={{new_order}}{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}" class="sorted-{{order}}">{{label}}</a></th>
-          {% else %}
-            <th><a href="?sort={{col}}&order=asc{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}">{{label}}</a></th>
-          {% endif %}
+        {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Completion %'), ('status','Status')] %}
+          {% set new_order = (sort == col and order == 'asc') and 'desc' or 'asc' %}
+          <th>
+            <a href="?sort={{ col }}&order={{ new_order }}{% if request.args.tag %}&tag={{ request.args.tag }}{% endif %}"
+               class="sorted-{{ order if sort == col else '' }}">
+              {{ label }}
+            </a>
+          </th>
         {% endfor %}
+        <th>Update Status</th>
       </tr>
     </thead>
     <tbody>
@@ -53,12 +55,23 @@
       <tr>
         <td>{{ g.name }}</td>
         <td>{{ g.playtime }}</td>
-        <td>{{ g.completion|default(0, true) }}%</td>
+        <td>{{ g.completion | default(0, true) }}%</td>
         <td>{{ g.status }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('update_status', appid=g.appid) }}">
+            <select name="status" onchange="this.form.submit()">
+              {% for option in ['Backlog', 'In Progress', 'Completed'] %}
+                <option value="{{ option }}" {% if g.status == option %}selected{% endif %}>
+                  {{ option }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
       </tr>
       {% endfor %}
       {% if games|length == 0 %}
-      <tr><td colspan="4">No games found.</td></tr>
+      <tr><td colspan="6">No games found.</td></tr>
       {% endif %}
     </tbody>
   </table>
@@ -66,19 +79,19 @@
   <!-- Pagination controls -->
   <div class="pagination">
     {% if page > 1 %}
-      <a href="?page=1{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}{% if sort %}&sort={{sort}}&order={{order}}{% endif %}">« First</a>
-      <a href="?page={{page-1}}{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}{% if sort %}&sort={{sort}}&order={{order}}{% endif %}">‹ Prev</a>
+      <a href="?page=1{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">« First</a>
+      <a href="?page={{ page-1 }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">‹ Prev</a>
     {% else %}
-      <span>« First</span> ‹ Prev
+      <span>« First</span> ‹ Prev
     {% endif %}
 
-    <span class="current">Page {{page}} of {{total_pages}}</span>
+    <span class="current">Page {{ page }} of {{ total_pages }}</span>
 
     {% if page < total_pages %}
-      <a href="?page={{page+1}}{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}{% if sort %}&sort={{sort}}&order={{order}}{% endif %}">Next ›</a>
-      <a href="?page={{total_pages}}{% if request.args.tag %}&tag={{request.args.tag}}{% endif %}{% if sort %}&sort={{sort}}&order={{order}}{% endif %}">Last »</a>
+      <a href="?page={{ page+1 }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">Next ›</a>
+      <a href="?page={{ total_pages }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">Last »</a>
     {% else %}
-      Next › <span>Last »</span>
+      <span>Next ›</span> <span>Last »</span>
     {% endif %}
   </div>
 </body>
