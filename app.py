@@ -127,51 +127,96 @@ def games():
     conn = get_db_connection()
     cur = conn.cursor()
 
+
+    cur.execute('SELECT steam_id FROM users WHERE ID = %s',(user_id,))
+    row = cur.fetchone()
+    if not row or not row['steam_id']:
+        conn.close()
+        flash('Please set your Steam Id first')
+        return redirect(url_for('dashboard'))
+    steam_id = row['steam_id']
+    
+    url = 'https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/'
+    params = {
+        'key': STEAM_API_KEY,
+        'steamid': steam_id,
+        'include_appinfo': 1,
+        'include_played_free_games':1,
+        'format': 'json'
+    }
+    
+    for _ in range(3):
+        resp = requests.get(url,params=params,timeout=5)
+        if(resp.status_code == 200):
+            break
+        time.sleep(2)
+    
+    else:
+        conn.close()
+        flash('Unable to fetch steam games right now.')
+        return redirect(url_for('dashboard'))
+    gamesData = resp.json().get('response', {}).get('games', [])
+    
+    for games in gamesData:
+        cur.execute('''
+        INSERT INTO games (user_id, appid, name, playtime, status, completion)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (user_id, appid) DO UPDATE SET
+        name = EXCLUDED.name,
+        playtime = EXCLUDED.playtime;
+        ''', (user_id, g['appid'], g['name'], g['playtime_forever'], 'Backlog', 0.0))
+    
+    conn.commit()
+    
     page     = request.args.get('page',     type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     sort     = request.args.get('sort',     default='name')
     order    = request.args.get('order',    default='asc').lower()
     tag      = request.args.get('tag')
 
-    if sort not in ('name', 'playtime', 'completion'):
+    if sort not in ('name','playtime','completion'):
         sort = 'name'
-    order_dir = 'DESC' if order == 'desc' else 'ASC'
-
-    base_sql = '''
-        SELECT appid, name, playtime, status, completion
+    
+    orderDir = 'DESC' if order == 'desc' else 'ASC'
+    offset = (page-1)*per_page
+    
+    query = f'''
+        SELECT appid,name,playtime,status,completion
         FROM games
         WHERE user_id = %s
+        {'AND %s = ANY(tags)' if tag else ''}
+        ORDER BY {sort} {orderDir}
+        LIMIT %s OFFSET %s
     '''
+    
     params = [user_id]
     if tag:
-        base_sql += ' AND %s = ANY(tags)'
         params.append(tag)
-    base_sql += f' ORDER BY {sort} {order_dir} LIMIT %s OFFSET %s'
-    offset = (page - 1) * per_page
-    params.extend([per_page, offset])
-
-    cur.execute(base_sql, params)
-    games_list = cur.fetchall()
-
-    count_sql = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s'
+    params += [per_page, offset]
+    
+    gamesList = cur.fetchall()
+    countQuery = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s'
+    params = [user_id]
+    
     if tag:
-        count_sql += ' AND %s = ANY(tags)'
-    cur.execute(count_sql, [user_id] + ([tag] if tag else []))
+        countQuery+= 'AND %s =ANY(tags)'
+        params.append(tag)
+    
+    cur.execute(query,params)
     total = cur.fetchone()['cnt']
-    total_pages = (total + per_page - 1) // per_page
-
+    total_pages = (total + per_page -1)
+    
     conn.close()
-    flash("Games_fetched: ", games_list)
     return render_template(
         'games.html',
-        games=games_list,
+        games = games,
         page=page,
-        total_pages=total_pages,
+        total_pages = total_pages,
         sort=sort,
         order=order,
         tag=tag
     )
-
+    
 @app.route('/set_steam_id/', methods =['POST'])
 def set_steam_id():
     if 'user_id' not in session:
