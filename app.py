@@ -161,6 +161,7 @@ def games():
     total_pages = (total + per_page - 1) // per_page
 
     conn.close()
+    flash("Games_fetched: ", games_list)
     return render_template(
         'games.html',
         games=games_list,
