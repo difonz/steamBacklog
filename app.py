@@ -155,6 +155,7 @@ def games():
         conn.close()
         flash('Unable to fetch steam games right now.')
         return redirect(url_for('dashboard'))
+    
     gamesData = resp.json().get('response', {}).get('games', [])
     
     for games in gamesData:
@@ -180,6 +181,7 @@ def games():
     orderDir = 'DESC' if order == 'desc' else 'ASC'
     offset = (page-1)*per_page
     
+    
     query = f'''
         SELECT appid,name,playtime,status,completion
         FROM games
@@ -194,7 +196,11 @@ def games():
         params.append(tag)
     params += [per_page, offset]
     
+    
+    cur.execute(query,params)
     gamesList = cur.fetchall()
+    
+    
     countQuery = 'SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s'
     params = [user_id]
     
