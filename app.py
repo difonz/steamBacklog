@@ -184,27 +184,38 @@ def set_steam_id():
         if "/id/" in profile_url:
             vanity = urlparse(profile_url).path.split("/id/")[1].split("/")[0]
             res = requests.get(
-                "https://api.steampowered.com/ISteamUsere/ResolveVanityURL/v1/",
-                params = {"key": STEAM_API_KEY, "vanityurl":vanity}
+                "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/",
+                params = {"key": STEAM_API_KEY, "vanityurl":vanity},
+                timeout =5
             )
-            data = res.json().get('response', {})
-            if data.get('success') == 1:
-                steam_id = data['steamid']
-            else:
-                flash("Couldnt resolve your vanity URL.")
+            if res.status_code != 200:
+                flash(f"Steam API error: status {res.status_code}")
                 return redirect(url_for('dashboard'))
-        elif "/profiles/" in profile_url:
+            
+            try:
+                payload = res.json()
+            except ValueError:
+                flash("Steam API returned invalid JSON.")
+                return redirect(url_for('dashboard'))
+            
+            data = payload.get('response', {})
+            if data.get('success') != 1:
+                flash("Couldn't resolve vanity URL.")
+                return redirect(url_for('dashboard'))
+            steam_id = data['steamid']
+        elif "/profile/" in profile_url:
             steam_id = profile_url.split("/profiles/")[1].split("/")[0]
         else:
-            flash("Enter a valid steam profile url")
+            flash("Enter a valid Steam profile URL")
             return redirect(url_for('dashboard'))
     elif steam_id64:
-        if steam_id64.isdigit() and len(steam_id64) >= 17:
+        if steam_id64.isdigit() and len(steam_id64) >=17:
             steam_id = steam_id64
         else:
-            flash("Invalid Steam 64 ID")
+            flash("Invalid steam64 ID")
             return redirect(url_for('dashboard'))
-    
+        
+            
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
