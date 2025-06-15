@@ -171,7 +171,7 @@ def games():
         tag=tag
     )
 
-@app.route('/set_steam_id/')
+@app.route('/set_steam_id/', methods =['POST'])
 def set_steam_id():
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -208,7 +208,7 @@ def set_steam_id():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-       'Update users SET steam_id = %s where id = %s',steam_id,session['user_id'] 
+       'Update users SET steam_id = %s where id = %s',(steam_id,session['user_id']) 
     )
     conn.commit()
     conn.close()
