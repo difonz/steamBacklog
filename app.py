@@ -159,72 +159,79 @@ def games():
 
     # Upsert each game into the DB
     for games in gamesData:
+        appid = games['appid']
+        # Fetch player achievements for the game
+        achResp = requests.get(
+            'https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/',
+        params={
+            'key': STEAM_API_KEY,
+            'steamid': steamid,
+            'appid': appid,
+            'l': 'en'
+            }
+        )
+        unlocked = total = 0
+        try:
+            achJson = achResp.json()
+            stats = achJson.get('playerstats', {})
+            if stats.get('success') and 'achievements' in stats:
+                total = len(stats['achievements'])
+                unlocked = sum(1 for achievements in stats['achievements'] if achievements.get('achieved') == 1)
+        except ValueError:
+            pass
+
+        completionPct = round((unlocked / total) * 100, 1) if total else 0.0
+
+        # Upsert the game into your local DB
         cur.execute('''
             INSERT INTO games (user_id, appid, name, playtime, status, completion)
             VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_id, appid) DO UPDATE
-              SET name = EXCLUDED.name,
-                  playtime = EXCLUDED.playtime;
+            SET name = EXCLUDED.name,
+                playtime = EXCLUDED.playtime,
+                completion = EXCLUDED.completion;
         ''', (
             user_id,
-            games['appid'],
-            games.get('name', 'Unknown'),
+            appid,
+            games['name'],
             games.get('playtime_forever', 0),
             'Backlog',
-            0.0
+            completionPct
         ))
+
     conn.commit()
 
-    # Pagination & sorting setup
+    # Pagination & sorting
     page = request.args.get('page', type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     sort = request.args.get('sort', default='name')
     order = request.args.get('order', default='asc').lower()
-    tag = request.args.get('tag')
     if sort not in ('name', 'playtime', 'completion'):
         sort = 'name'
-    orderDir = 'DESC' if order == 'desc' else 'ASC'
+    order_dir = 'DESC' if order == 'desc' else 'ASC'
     offset = (page - 1) * per_page
 
-    # Build main SELECT query
-    whereClause = 'AND %s = ANY(tags)' if tag else ''
-    query = f'''
+    cur.execute(f'''
         SELECT appid, name, playtime, status, completion
         FROM games
-        WHERE user_id = %s {whereClause}
-        ORDER BY {sort} {orderDir}
+        WHERE user_id = %s
+        ORDER BY {sort} {order_dir}
         LIMIT %s OFFSET %s
-    '''
-    selectParams = [user_id]
-    if tag:
-        selectParams.append(tag)
-    selectParams += [per_page, offset]
+    ''', (user_id, per_page, offset))
 
-    # Execute SELECT
-    cur.execute(query, selectParams)
-    gamesList = cur.fetchall()
-
-    # Count total rows for pagination
-    countQuery = f'''
-        SELECT COUNT(*) AS cnt
-        FROM games
-        WHERE user_id = %s {whereClause}
-    '''
-    countParams = [user_id] + ([tag] if tag else [])
-    cur.execute(countQuery, countParams)
+    games = cur.fetchall()
+    cur.execute('SELECT COUNT(*) AS cnt FROM games WHERE user_id = %s', (user_id,))
     total = cur.fetchone()['cnt']
     total_pages = (total + per_page - 1) // per_page
 
     conn.close()
-
     return render_template(
         'games.html',
-        games=gamesList,
+        games=games,
         page=page,
         total_pages=total_pages,
         sort=sort,
-        order=order,
-        tag=tag
+        order=order
     )
 
     
