@@ -1,5 +1,6 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
+{% block title %}Games | SteamBacklog{% endblock %}
+{% block content %}
 <head>
     <title>Register</title>
 </head>
@@ -21,4 +22,4 @@
     </form>
     <a href="{{ url_for('login') }}">Already have an account? Login</a>
 </body>
-</html>
+{% endblock %}
