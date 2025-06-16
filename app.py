@@ -9,6 +9,8 @@ import psycopg2.errors
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 
+
+
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
 SECRET_KEY     = os.getenv("SECRET_KEY")
@@ -290,25 +292,34 @@ def set_steam_id():
     flash("Steam ID saved!")
     return redirect(url_for('dashboard'))
 
-@app.route('/update_status/<int:appid>/', methods =['POST'])
+@app.route("/update_status/<int:appid>", methods=["POST"])
 def update_status(appid):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
+
     user_id = session['user_id']
-    newStatus = request.form.get('status')
+    status = request.form.get("status")
+
+    # Preserve sorting and filters
+    sort = request.form.get("sort", "name")
+    order = request.form.get("order", "asc")
+    tag = request.form.get("tag", "")
+    page = request.form.get("page", 1)
+
+    # Update the game's status using raw SQL
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        'UPDATE games SET status = %s WHERE user_id = %s AND appid = %s',
-        (newStatus,user_id,appid)
+        "UPDATE games SET status = %s WHERE user_id = %s AND appid = %s",
+        (status, user_id, appid)
     )
     conn.commit()
+    cur.close()
     conn.close()
-    qs = request.query_string.decode('utf-8')
-    
-    flash(f"Status updated to {newStatus}")
-    return redirect(url_for('games')+(qs if qs else ''))
+
+    return redirect(url_for("games", sort=sort, order=order, tag=tag, page=page))
+
+
 
 if __name__ == '__main__':
     init_db()
