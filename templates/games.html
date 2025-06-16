@@ -6,7 +6,7 @@
 <table class="table table-striped">
   <thead class="thead-light">
     <tr>
-      {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Completion %'), ('status','Status'), ('','')] %}
+      {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Achievement Completion %'), ('status','Status'), ('','')] %}
       <th>
         {% if col %}
           <a href="?sort={{col}}&order={{ 'desc' if sort==col and order=='asc' else 'asc' }}{% if tag %}&tag={{tag}}{% endif %}">

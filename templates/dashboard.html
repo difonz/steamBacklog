@@ -1,5 +1,6 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
+{% block title %}Games | SteamBacklog{% endblock %}
+{% block content %}
 <head>
     <title>Dashboard</title>
 </head>
@@ -31,4 +32,4 @@
     <a href="{{ url_for('games') }}">View My Games</a> |
     <a href="{{ url_for('logout') }}">Logout</a>
 </body>
-</html>
+{% endblock %}
