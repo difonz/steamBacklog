@@ -28,9 +28,15 @@
       <td>{{ g.name }}</td>
       <td>{{ g.playtime }}</td>
       <td>{{ g.completion|default(0) }}%</td>
-      <td>{{ g.status }}</td> <!-- Current status display -->
+      <td>{{ g.status }}</td> <!-- Display status -->
       <td>
         <form method="POST" action="{{ url_for('update_status', appid=g.appid) }}">
+          <!-- Preserve sorting and filters -->
+          <input type="hidden" name="sort" value="{{ sort }}">
+          <input type="hidden" name="order" value="{{ order }}">
+          <input type="hidden" name="tag" value="{{ tag }}">
+          <input type="hidden" name="page" value="{{ page }}">
+
           <div class="input-group">
             <select class="custom-select" name="status">
               {% for option in ['Backlog','In Progress','Completed'] %}
