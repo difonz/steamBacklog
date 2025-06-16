@@ -1,98 +1,72 @@
-<!-- templates/games.html -->
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>My Steam Games</title>
-  <style>
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px 12px; border: 1px solid #ddd; }
-    th a { text-decoration: none; color: inherit; }
-    th a.sorted-asc::after  { content: " ▲"; }
-    th a.sorted-desc::after { content: " ▼"; }
-    .pagination { margin: 16px 0; }
-    .pagination a { margin: 0 4px; text-decoration: none; }
-    .pagination span.current { margin: 0 4px; font-weight: bold; }
-    form { margin: 0; }
-    select { width: auto; }
-    button { padding: 4px 8px; }
-  </style>
-</head>
-<body>
-  <h1>My Game Library</h1>
+{% extends "base.html" %}
+{% block title %}Games | SteamBacklog{% endblock %}
+{% block content %}
+<h1>My Game Library</h1>
 
-  <!-- Filter by tag form -->
-  <form method="get">
-    <label>
-      Filter by Tag:
-      <input type="text" name="tag" value="{{ request.args.tag or '' }}" placeholder="e.g. RPG">
-    </label>
-    <button type="submit">Apply</button>
-    {% if request.args.tag %}
-      <a href="{{ url_for('games') }}">Clear Filter</a>
-    {% endif %}
-  </form>
-
-  <table>
-    <thead>
-      <tr>
-        {% set sort = request.args.get('sort', 'name') %}
-        {% set order = request.args.get('order', 'asc') %}
-        {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Completion %'), ('status','Status')] %}
-          {% set new_order = (sort == col and order == 'asc') and 'desc' or 'asc' %}
-          <th>
-            <a href="?sort={{ col }}&order={{ new_order }}{% if request.args.tag %}&tag={{ request.args.tag }}{% endif %}"
-               class="sorted-{{ order if sort == col else '' }}">
-              {{ label }}
-            </a>
-          </th>
-        {% endfor %}
-        <th>Update Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for g in games %}
-      <tr>
-        <td>{{ g.name }}</td>
-        <td>{{ g.playtime }}</td>
-        <td>{{ g.completion | default(0, true) }}%</td>
-        <td>{{ g.status }}</td>
-        <td>
-          <form method="POST" action="{{ url_for('update_status', appid=g.appid) }}">
-            <select name="status" onchange="this.form.submit()">
-              {% for option in ['Backlog', 'In Progress', 'Completed'] %}
-                <option value="{{ option }}" {% if g.status == option %}selected{% endif %}>
-                  {{ option }}
-                </option>
+<table class="table table-striped">
+  <thead class="thead-light">
+    <tr>
+      {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Completion %'), ('status','Status'), ('','')] %}
+      <th>
+        {% if col %}
+          <a href="?sort={{col}}&order={{ 'desc' if sort==col and order=='asc' else 'asc' }}{% if tag %}&tag={{tag}}{% endif %}">
+            {{ label }}
+            {% if sort == col %}
+              <span class="ml-1">{{ '▲' if order == 'asc' else '▼' }}</span>
+            {% endif %}
+          </a>
+        {% endif %}
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in games %}
+    <tr>
+      <td>{{ g.name }}</td>
+      <td>{{ g.playtime }}</td>
+      <td>{{ g.completion|default(0) }}%</td>
+      <td>
+        <form method="POST" action="{{ url_for('update_status', appid=g.appid) }}">
+          <div class="input-group">
+            <select class="custom-select" name="status">
+              {% for option in ['Backlog','In Progress','Completed'] %}
+                <option value="{{ option }}" {% if g.status==option %}selected{% endif %}>{{ option }}</option>
               {% endfor %}
             </select>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-      {% if games|length == 0 %}
-      <tr><td colspan="6">No games found.</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
-
-  <!-- Pagination controls -->
-  <div class="pagination">
-    {% if page > 1 %}
-      <a href="?page=1{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">« First</a>
-      <a href="?page={{ page-1 }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">‹ Prev</a>
+            <div class="input-group-append">
+              <button class="btn btn-outline-primary btn-sm" type="submit">Save</button>
+            </div>
+          </div>
+        </form>
+      </td>
+    </tr>
     {% else %}
-      <span>« First</span> ‹ Prev
+    <tr><td colspan="5" class="text-center">No games found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<nav>
+  <ul class="pagination justify-content-center">
+    {% if page > 1 %}
+      <li class="page-item"><a class="page-link" href="?page=1{% if tag %}&tag={{tag}}{% endif %}">« First</a></li>
+      <li class="page-item"><a class="page-link" href="?page={{page-1}}{% if tag %}&tag={{tag}}{% endif %}">‹ Prev</a></li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">« First</span></li>
+      <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
     {% endif %}
 
-    <span class="current">Page {{ page }} of {{ total_pages }}</span>
+    <li class="page-item active"><span class="page-link">Page {{page}} of {{total_pages}}</span></li>
 
     {% if page < total_pages %}
-      <a href="?page={{ page+1 }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">Next ›</a>
-      <a href="?page={{ total_pages }}{% if tag %}&tag={{ tag }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}">Last »</a>
+      <li class="page-item"><a class="page-link" href="?page={{page+1}}{% if tag %}&tag={{tag}}{% endif %}">Next ›</a></li>
+      <li class="page-item"><a class="page-link" href="?page={{total_pages}}{% if tag %}&tag={{tag}}{% endif %}">Last »</a></li>
     {% else %}
-      <span>Next ›</span> <span>Last »</span>
+      <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+      <li class="page-item disabled"><span class="page-link">Last »</span></li>
     {% endif %}
-  </div>
-</body>
-</html>
+  </ul>
+</nav>
+
+{% endblock %}

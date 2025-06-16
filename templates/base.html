@@ -1,29 +1,29 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Required meta tags -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Steam Backlog{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
     <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
-     integrity="sha384-..." crossorigin="anonymous">
+    <link 
+      rel="stylesheet" 
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+      integrity="..." crossorigin="anonymous">
+
+    <title>{% block title %}SteamBacklog{% endblock %}</title>
   </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
       <a class="navbar-brand" href="{{ url_for('dashboard') }}">SteamBacklog</a>
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mr-auto">
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('games') }}">Games</a></li>
-        </ul>
-        {% if session.user_id %}
-          <form class="form-inline" action="{{ url_for('logout') }}">
-            <button class="btn btn-outline-danger" type="submit">Logout</button>
-          </form>
+      <div class="ml-auto">
+        {% if session.get('user_id') %}
+          <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Logout</a>
         {% endif %}
       </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container py-4">
       {% with messages = get_flashed_messages() %}
         {% if messages %}
           {% for msg in messages %}
@@ -31,12 +31,16 @@
           {% endfor %}
         {% endif %}
       {% endwith %}
+
       {% block content %}{% endblock %}
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
+    <!-- Bootstrap JS bundles -->
+    <script 
+      src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+    <script 
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" crossorigin="anonymous"></script>
+    <script 
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" crossorigin="anonymous"></script>
   </body>
 </html>
