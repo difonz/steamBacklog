@@ -6,7 +6,7 @@
 <table class="table table-striped">
   <thead class="thead-light">
     <tr>
-      {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Achievement Completion %'), ('status','Status'), ('','')] %}
+      {% for col, label in [('name','Name'), ('playtime','Playtime'), ('completion','Achievement Completion %'), ('status_display','Current Status'), ('status','Update Status'), ('','')] %}
       <th>
         {% if col %}
           <a href="?sort={{col}}&order={{ 'desc' if sort==col and order=='asc' else 'asc' }}{% if tag %}&tag={{tag}}{% endif %}">
@@ -15,6 +15,8 @@
               <span class="ml-1">{{ '▲' if order == 'asc' else '▼' }}</span>
             {% endif %}
           </a>
+        {% else %}
+          {{ label }}
         {% endif %}
       </th>
       {% endfor %}
@@ -26,12 +28,13 @@
       <td>{{ g.name }}</td>
       <td>{{ g.playtime }}</td>
       <td>{{ g.completion|default(0) }}%</td>
+      <td>{{ g.status }}</td> <!-- Current status display -->
       <td>
         <form method="POST" action="{{ url_for('update_status', appid=g.appid) }}">
           <div class="input-group">
             <select class="custom-select" name="status">
               {% for option in ['Backlog','In Progress','Completed'] %}
-                <option value="{{ option }}" {% if g.status==option %}selected{% endif %}>{{ option }}</option>
+                <option value="{{ option }}" {% if g.status == option %}selected{% endif %}>{{ option }}</option>
               {% endfor %}
             </select>
             <div class="input-group-append">
@@ -42,7 +45,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="5" class="text-center">No games found.</td></tr>
+    <tr><td colspan="6" class="text-center">No games found.</td></tr>
     {% endfor %}
   </tbody>
 </table>
