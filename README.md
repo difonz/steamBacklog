@@ -6,12 +6,12 @@ A **Flask-based web app** to track your Steam game backlog. Automatically fetche
 
 ## 🎬 Demo
 
-▶️ **[Click here to watch the full demo video](steambacklogDemo/steambacklogDemo.webm)**
+▶️ **[Click here to watch the full demo video](steambacklogDemo/videos/steambacklogDemo.webm)**
 
 <details>
 <summary>GIF Preview</summary>
 
-![Steam Backlog Tracker Demo](steambacklogDemo/steambacklogDemo.gif)
+![Steam Backlog Tracker Demo](steambacklogDemo/videos/steambacklogDemo.gif)
 
 </details>
 
