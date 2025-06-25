@@ -1,0 +1,23 @@
+{
+  "name": "steambacklogtracker",
+  "version": "1.0.0",
+  "description": "A Flask‑based app to track your Steam game backlog — fetches your library, playtime, achievements %, and lets you filter, sort, and paginate your collection.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/difonz/steamBacklog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/difonz/steamBacklog/issues"
+  },
+  "homepage": "https://github.com/difonz/steamBacklog#readme",
+  "dependencies": {
+    "playwright": "^1.53.1"
+  }
+}
